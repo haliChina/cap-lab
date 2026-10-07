@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cap bypass · feedback</title>
+    <style>
+      /* one component, one button. no framework, no build. */
+      :root {
+        --fg: #1a1a1a;
+        --muted: #6b6b6b;
+        --line: #d8d8d4;
+        --bg: #fbfbf9;
+        --ok: #1f6f43;
+        --bad: #a12a22;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      }
+      main { width: min(420px, calc(100vw - 32px)); }
+      h1 { margin: 0 0 4px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+      p.sub { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
+      button {
+        width: 100%;
+        padding: 12px 16px;
+        font: inherit;
+        font-weight: 600;
+        color: #fff;
+        background: var(--fg);
+        border: 1px solid var(--fg);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { background: #333; }
+      button:disabled { background: var(--muted); border-color: var(--muted); cursor: progress; }
+      button:focus-visible { outline: 2px solid #06c; outline-offset: 2px; }
+      .status {
+        margin-top: 14px;
+        padding: 12px;
+        min-height: 20px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        color: var(--muted);
+        word-break: break-all;
+      }
+      .status.ok { color: var(--ok); border-color: #bcd9c6; }
+      .status.bad { color: var(--bad); border-color: #e5c0bb; }
+      .tally { margin-top: 12px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Cap bypass · feedback</h1>
+      <p class="sub">无浏览器解 PoW + instrumentation，取 token 并校验。</p>
+
+      <button id="run" type="button">Run one token</button>
+
+      <div id="status" class="status" role="status" aria-live="polite">idle</div>
+      <div id="tally" class="tally"></div>
+    </main>
+
+    <script>
+      const btn = document.getElementById("run");
+      const out = document.getElementById("status");
+      const tally = document.getElementById("tally");
+
+      const ms = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "s" : n + "ms");
+      const num = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : n);
+
+      function show(kind, text) {
+        out.className = "status" + (kind ? " " + kind : "");
+        out.textContent = text;
+      }
+
+      function tallyText(s) {
+        if (!s || !s.total) return "";
+        return `${s.passed}/${s.total} passed` +
+          (s.avgMs ? ` · avg ${ms(s.avgMs)} · avg ${num(s.avgHashes || 0)} hashes` : "");
+      }
+
+      async function refreshTally() {
+        try {
+          tally.textContent = tallyText(await (await fetch("/api/stats")).json());
+        } catch {}
+      }
+
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        show("", "running…");
+        try {
+          const r = await (await fetch("/api/run", { method: "POST" })).json();
+          if (r.error) {
+            show("bad", "ERROR " + r.error);
+          } else if (r.ok) {
+            show("ok", `PASS · ${ms(r.ms)} · ${num(r.hashes)} hashes` +
+              (r.siteverify ? ` · siteverify ${r.siteverify}` : ""));
+          } else {
+            show("bad", `FAIL · ${r.status} · ${r.error || ""}`);
+          }
+          tally.textContent = tallyText(r.stats);
+        } catch (e) {
+          show("bad", "ERROR " + e.message);
+        } finally {
+          btn.disabled = false;
+          refreshTally();
+        }
+      });
+
+      refreshTally();
+    </script>
+  </body>
+</html>
