@@ -1,0 +1,4 @@
+cap/
+node_modules/
+matrix-*.json
+*.log

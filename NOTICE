@@ -1,0 +1,14 @@
+Cap Lab Notes
+Copyright 2026 haliChina
+
+This product includes software developed as an independent research effort.
+
+Portions of the behavior described in the documentation of this project were
+derived from reading the source code of the Cap project
+(https://github.com/tiagozip/cap), which is licensed under the Apache License,
+Version 2.0. No Cap source code is redistributed in this repository; the tools
+here read Cap's own modules from a local clone in order to use its reference
+implementation as the comparison baseline.
+
+This project is NOT affiliated with, endorsed by, or supported by the Cap
+project or its maintainers.
