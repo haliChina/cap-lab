@@ -1,25 +1,33 @@
-# 有意未包含的内容
+# 仓库范围：包含什么、仍然排除什么
 
-这一版刻意不含「可直接对任意 Cap 部署运行的绕过链路」。理由是研究价值在**发现本身**，
-而不在一份能被别人直接拿去用的武器；把两者绑在一起发布，会让这份研究对防守方的价值下降。
+## 包含
 
-## 未包含
+| 类别 | 文件 |
+|---|---|
+| 研究笔记 | `docs/SETUP.md`、`docs/PROTOCOL.md`、`docs/MATRIX.md`、`docs/DETECTION.md` |
+| 靶场与矩阵 | `tools/lab-up.sh`、`tools/lab-down.sh`、`tools/mkkey.py`、`tools/matrix.mjs`、`tools/bench.mjs`、`tools/cap-lib.mjs` |
+| 探针对比 | `tools/detect-matrix.mjs`（直接调用 Cap 自己的 `detectAutomation()`，输入为手写向量） |
+| **完整链路** | `tools/bypass.sh`、`tools/oneclick.mjs`、`tools/mini-browser.mjs`、`tools/instr-shim.mjs` |
+| **端点探测** | `tools/probe-remote.mjs`、`tools/capcheck.sh`、`tools/capcheck.py` |
 
-| 文件（原靶场里） | 内容 | 不发的理由 |
-|---|---|---|
-| `bypass.sh` / `oneclick.mjs` | 一条命令跑完 PoW + instrumentation + redeem + siteverify | 可直接对任意部署使用 |
-| `mini-browser.mjs` | 用 `node:vm` 模拟浏览器环境以执行 instrumentation 程序的实现 | 同上，是上面那条链的核心部件 |
-| `instr-shim.mjs` | 同上，最早的实验脚本 | 同上 |
-| `probe-remote.mjs` / `capcheck.sh` / `capcheck.py` | 指向某个具体第三方生产域名的远程探针 | 不应把第三方生产站点写进公开仓库 |
-| `cap/` | Cap 源码克隆（本机 100MB+） | 属于上游仓库，不该在自己的仓库里再放一份 |
-| 十余个一次性调试脚本 | `ab2.mjs` / `cmp.mjs` / `oracle*.mjs` / `*probe*.mjs` 等 | 排查过程记录，无长期价值 |
+「完整链路」是能在**你指定的**实例上把 PoW、instrumentation、redeem、siteverify 一次跑完的脚本；
+「端点探测」是判断某个 Cap 部署处在哪一代、开了哪些防护的小工具。
+两者都是**通用**的：仓库里不预置任何具体目标地址，命令行参数必须由你提供。
 
-## 保留了什么、为什么
+## 仍然排除
 
-- **PoW-only 求解器**（`tools/` 里）：它实现的是 Cap 已公开发布的算法，`capjs-core`
-  本身就导出了这些函数，发布它不增加任何信息量。
-- **向量对比脚本**（`tools/detect-matrix.mjs`）：它是 `docs/DETECTION.md` 的证据，
-  用的是 Cap 自己仓库里的 `detectAutomation()`，输入是手写向量。
-- **矩阵与协议笔记**：可复现的实测数据，是这份研究的主体价值。
+| 内容 | 理由 |
+|---|---|
+| Cap 源码克隆（`cap/`） | 属于上游仓库；请自行 `git clone https://github.com/tiagozip/cap` 到 `cap/` 下，脚本默认从那里读取被测项目的核心模块作为对照基准 |
+| 任何第三方站点的地址 | 仓库不写入、不预置任何真实目标域名；所有端点都必须由使用者在命令行显式给出 |
+| 十余个一次性调试脚本 | `ab2.mjs` / `cmp.mjs` / `oracle*.mjs` / `*-probe.mjs` 等排查过程记录，无长期价值 |
+| `node_modules/`、矩阵输出的 JSON | 可复现产物，不入库（见 `.gitignore`） |
 
-如果你只是想自己留着（不上公开仓库），上面那些文件原样都在本地靶场目录里。
+## 关于 `tools/` 里那些「完整链路」脚本
+
+它们能对**任何** Cap 部署完成整条验证流程，包括默认配置下启用的 instrumentation 与
+`blockAutomatedBrowsers`。这不是疏忽，是有意的：**既然分析已经公开，写法与工具就没必要藏**，
+区别只在于使用者是否对自己的目标负责。请务必只对自己拥有或已获书面授权的实例使用。
+
+如果你只想看结论、不想跑任何东西，`docs/` 下四篇文档是自足的；
+`docs/DETECTION.md` 里只写了「这一层检什么、为什么挡不住什么」，没有写「怎么逐项通过」。
